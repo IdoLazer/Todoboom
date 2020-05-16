@@ -1,6 +1,8 @@
 package com.my.todoboom;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.View;
@@ -9,6 +11,7 @@ import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -16,6 +19,47 @@ public class MainActivity extends AppCompatActivity {
 
     private TodoAdapter adapter;
     private EditText taskInput;
+
+    public static class DeleteItemDialogFragment extends DialogFragment {
+        private int itemID;
+
+        public void setItemID(int itemID) {
+            this.itemID = itemID;
+        }
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            if (savedInstanceState != null) {
+                itemID = savedInstanceState.getInt("itemID");
+            }
+            return new AlertDialog.Builder(getActivity())
+                    .setMessage(R.string.delete_item_dialog)
+                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            ((MainActivity)getActivity()).RemoveItem(itemID);
+                        }
+                    })
+                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                        }
+                    })
+                    .create();
+        }
+
+        @Override
+        public void onSaveInstanceState(@NonNull Bundle outState) {
+            super.onSaveInstanceState(outState);
+            outState.putInt("itmeID", itemID);
+        }
+    }
+
+    private void RemoveItem(int itemID) {
+        adapter.deleteTodo(itemID);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,22 +126,12 @@ public class MainActivity extends AppCompatActivity {
                 app.todoListInfo.setIsDone(id);
             }
         });
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         adapter.setTodoLongClickListener(new TodoAdapter.TodoLongClickListener() {
             @Override
-            public void onTodoLongClickListener(final int itemID) {
-                AlertDialog dialog = builder
-                        .setMessage(R.string.delete_item_dialog)
-                        .setPositiveButton("yes", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                adapter.deleteTodo(itemID);
-                            }
-                        })
-                        .setNegativeButton("no", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                            }
-                        }).create();
-                dialog.show();
+            public void onTodoLongClickListener(final int id) {
+                DeleteItemDialogFragment dialog = new DeleteItemDialogFragment();
+                dialog.setItemID(id);
+                dialog.show(getSupportFragmentManager(), "tag");
             }
         });
     }
