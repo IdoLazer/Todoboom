@@ -11,11 +11,6 @@ public class TodoItem {
         this.isDone = isDone;
     }
 
-    public TodoItem(String todoString) {
-        this(todoString.substring(0, todoString.lastIndexOf(";")),
-                (todoString.endsWith("isDone")));
-    }
-
     public String getDescription() {
         return description;
     }
@@ -30,11 +25,5 @@ public class TodoItem {
 
     public void setDone(boolean done) {
         isDone = done;
-    }
-
-    @NonNull
-    @Override
-    public String toString() {
-        return  description + ";" + (isDone? "isDone" : "");
     }
 }

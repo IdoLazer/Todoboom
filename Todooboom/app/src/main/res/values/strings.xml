@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Todoboom</string>
+    <string name="delete_item_dialog">Are you sure you want to delete?</string>
 </resources>

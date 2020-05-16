@@ -8,22 +8,22 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
 
     public interface TodoClickListener {
-        public void onTodoClicked(TodoItem todo);
+        public void onTodoClicked(int id);
     }
 
-    private List<TodoItem> todos = new ArrayList<>();
-    private TodoClickListener todoClickListener;
+    public interface TodoLongClickListener {
+        public void onTodoLongClickListener(int id);
+    }
 
-    public void setTodos(List<TodoItem> todos) {
-        this.todos.clear();
-        this.todos.addAll(todos);
-        notifyDataSetChanged();
+    private TodoListInfoManager todos;
+    private TodoClickListener todoClickListener;
+    private TodoLongClickListener todoLongClickListener;
+
+    public TodoAdapter(TodoListInfoManager todos) {
+        this.todos = todos;
     }
 
     public void addTodo(TodoItem todo) {
@@ -31,8 +31,13 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
         notifyDataSetChanged();
     }
 
-    public void clearTodo() {
+    public void clearTodos() {
         this.todos.clear();
+        notifyDataSetChanged();
+    }
+
+    public void deleteTodo(int id) {
+        this.todos.delete(id);
         notifyDataSetChanged();
     }
 
@@ -53,19 +58,30 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull TodoHolder holder, int position) {
+    public void onBindViewHolder(@NonNull TodoHolder holder, final int position) {
         final TodoItem todo = todos.get(position);
         holder.todoText.setText(todo.getDescription());
-        holder.todoText.setAlpha(todo.isDone()? 0.5f : 1.0f);
-        holder.tickBox.setImageResource(todo.isDone()?
+        holder.todoText.setAlpha(todo.isDone() ? 0.5f : 1.0f);
+        holder.tickBox.setImageResource(todo.isDone() ?
                 R.drawable.ticked_box_icon : R.drawable.empty_box_icon);
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (todoClickListener != null) {
-                    todoClickListener.onTodoClicked(todo);
+                    todoClickListener.onTodoClicked(position);
                     notifyDataSetChanged();
                 }
+            }
+        });
+        holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (todoLongClickListener != null) {
+                    todoLongClickListener.onTodoLongClickListener(position);
+                    notifyDataSetChanged();
+                    return true;
+                }
+                return false;
             }
         });
     }
@@ -78,12 +94,7 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
     public void setTodoClickListener(TodoClickListener todoClickListener) {
         this.todoClickListener = todoClickListener;
     }
-
-    public ArrayList<String> getTodosAsStrings() {
-        ArrayList<String> todoStrings = new ArrayList<>();
-        for (TodoItem todo: todos) {
-            todoStrings.add(todo.toString());
-        }
-        return todoStrings;
+    public void setTodoLongClickListener(TodoLongClickListener todoLongClickListener) {
+        this.todoLongClickListener = todoLongClickListener;
     }
 }
