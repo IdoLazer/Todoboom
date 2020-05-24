@@ -2,8 +2,8 @@ package com.my.todoboom;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -19,30 +19,17 @@ public class MainActivity extends AppCompatActivity {
 
     private TodoAdapter adapter;
     private EditText taskInput;
+    private TodoboomApp app;
 
-    public static class DeleteItemDialogFragment extends DialogFragment {
-        private int itemID;
-
-        public void setItemID(int itemID) {
-            this.itemID = itemID;
-        }
+    public static class CantCreateEmptyTaskDialogFragment extends DialogFragment {
 
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            if (savedInstanceState != null) {
-                itemID = savedInstanceState.getInt("itemID");
-            }
-            return new AlertDialog.Builder(getActivity())
-                    .setMessage(R.string.delete_item_dialog)
-                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ((MainActivity)getActivity()).RemoveItem(itemID);
-                        }
-                    })
-                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
 
+            return new AlertDialog.Builder(getActivity())
+                    .setMessage(R.string.cant_create_empty_task_dialog)
+                    .setNeutralButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                         }
@@ -53,12 +40,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSaveInstanceState(@NonNull Bundle outState) {
             super.onSaveInstanceState(outState);
-            outState.putInt("itmeID", itemID);
         }
-    }
-
-    private void RemoveItem(int itemID) {
-        adapter.deleteTodo(itemID);
     }
 
     @Override
@@ -66,13 +48,13 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final TodoboomApp app = (TodoboomApp) getApplicationContext();
+        app = (TodoboomApp) getApplicationContext();
         taskInput = findViewById(R.id.task_input);
         Button createBtn = findViewById(R.id.create_btn);
         Button clearBtn = findViewById(R.id.clear_btn);
         RecyclerView todoRecycler = findViewById(R.id.todo_recycler);
 
-        createAdapter(app);
+        createAdapter();
 
         setRecycler(todoRecycler);
 
@@ -93,7 +75,8 @@ public class MainActivity extends AppCompatActivity {
         clearBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                adapter.clearTodos();
+                app.todoListInfo.clear();
+                adapter.notifyDataSetChanged();
             }
         });
     }
@@ -103,9 +86,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (taskInput.getText().length() == 0) {
+                    new CantCreateEmptyTaskDialogFragment()
+                            .show(getSupportFragmentManager(), "tag");
                     return;
                 }
-                adapter.addTodo(new TodoItem(taskInput.getText().toString(), false));
+                app.todoListInfo.add(new TodoItem(taskInput.getText().toString(), false));
+                adapter.notifyDataSetChanged();
                 taskInput.getText().clear();
             }
         });
@@ -118,22 +104,30 @@ public class MainActivity extends AppCompatActivity {
                 new LinearLayoutManager(this, RecyclerView.VERTICAL, reverseLayout));
     }
 
-    private void createAdapter(final TodoboomApp app) {
-        adapter = new TodoAdapter(app.todoListInfo);
+    private void createAdapter() {
+        adapter = app.adapter;
         adapter.setTodoClickListener(new TodoAdapter.TodoClickListener() {
             @Override
             public void onTodoClicked(int id) {
-                app.todoListInfo.setIsDone(id);
+                if (app.todoListInfo.get(id).isDone()) {
+                    openCompleteItemActivity(id);
+                } else {
+                    openItemActivity(id);
+                }
             }
         });
-        adapter.setTodoLongClickListener(new TodoAdapter.TodoLongClickListener() {
-            @Override
-            public void onTodoLongClickListener(final int id) {
-                DeleteItemDialogFragment dialog = new DeleteItemDialogFragment();
-                dialog.setItemID(id);
-                dialog.show(getSupportFragmentManager(), "tag");
-            }
-        });
+    }
+
+    private void openCompleteItemActivity(int id) {
+        Intent intent = new Intent(this, CompletedItemActivity.class);
+        intent.putExtra("id", id);
+        startActivity(intent);
+    }
+
+    private void openItemActivity(int id) {
+        Intent intent = new Intent(this, ItemActivity.class);
+        intent.putExtra("id", id);
+        startActivity(intent);
     }
 
     @Override

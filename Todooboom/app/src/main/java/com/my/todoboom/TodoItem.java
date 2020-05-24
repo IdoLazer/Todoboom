@@ -1,22 +1,33 @@
 package com.my.todoboom;
 
-import androidx.annotation.NonNull;
+import java.util.Calendar;
+import java.util.Date;
 
 public class TodoItem {
-    private String description;
+    private String content;
+    private Date creationTimestamp;
+    private Date lastEditTimestamp;
+    private String id;
     private boolean isDone;
 
-    public TodoItem(String description, boolean isDone) {
-        this.description = description;
+    public TodoItem() {
+
+    }
+
+    public TodoItem(String content, boolean isDone) {
+        this.content = content;
         this.isDone = isDone;
+        this.creationTimestamp = Calendar.getInstance().getTime();
+        this.lastEditTimestamp = Calendar.getInstance().getTime();
     }
 
-    public String getDescription() {
-        return description;
+    public String getContent() {
+        return content;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setContent(String content) {
+        this.content = content;
+        lastEditTimestamp = Calendar.getInstance().getTime();
     }
 
     public boolean isDone() {
@@ -25,5 +36,22 @@ public class TodoItem {
 
     public void setDone(boolean done) {
         isDone = done;
+        lastEditTimestamp = Calendar.getInstance().getTime();
+    }
+
+    public Date getCreationTimestamp() {
+        return creationTimestamp;
+    }
+
+    public Date getLastEditTimestamp() {
+        return lastEditTimestamp;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return this.id;
     }
 }

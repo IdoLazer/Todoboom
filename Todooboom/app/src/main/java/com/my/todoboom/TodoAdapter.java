@@ -10,37 +10,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
 
+    private TodoboomApp app;
+
+    public TodoAdapter(TodoboomApp app) {
+        this.app = app;
+    }
+
     public interface TodoClickListener {
-        public void onTodoClicked(int id);
+        void onTodoClicked(int id);
     }
 
-    public interface TodoLongClickListener {
-        public void onTodoLongClickListener(int id);
-    }
-
-    private TodoListInfoManager todos;
     private TodoClickListener todoClickListener;
-    private TodoLongClickListener todoLongClickListener;
-
-    public TodoAdapter(TodoListInfoManager todos) {
-        this.todos = todos;
-    }
-
-    public void addTodo(TodoItem todo) {
-        this.todos.add(todo);
-        notifyDataSetChanged();
-    }
-
-    public void clearTodos() {
-        this.todos.clear();
-        notifyDataSetChanged();
-    }
-
-    public void deleteTodo(int id) {
-        this.todos.delete(id);
-        notifyDataSetChanged();
-    }
-
     @NonNull
     @Override
     public TodoHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -59,8 +39,8 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull TodoHolder holder, final int position) {
-        final TodoItem todo = todos.get(position);
-        holder.todoText.setText(todo.getDescription());
+        final TodoItem todo = app.todoListInfo.get(position);
+        holder.todoText.setText(todo.getContent());
         holder.todoText.setAlpha(todo.isDone() ? 0.5f : 1.0f);
         holder.tickBox.setImageResource(todo.isDone() ?
                 R.drawable.ticked_box_icon : R.drawable.empty_box_icon);
@@ -73,28 +53,14 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoHolder> {
                 }
             }
         });
-        holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                if (todoLongClickListener != null) {
-                    todoLongClickListener.onTodoLongClickListener(position);
-                    notifyDataSetChanged();
-                    return true;
-                }
-                return false;
-            }
-        });
     }
 
     @Override
     public int getItemCount() {
-        return todos.size();
+        return app.todoListInfo.size();
     }
 
     public void setTodoClickListener(TodoClickListener todoClickListener) {
         this.todoClickListener = todoClickListener;
-    }
-    public void setTodoLongClickListener(TodoLongClickListener todoLongClickListener) {
-        this.todoLongClickListener = todoLongClickListener;
     }
 }

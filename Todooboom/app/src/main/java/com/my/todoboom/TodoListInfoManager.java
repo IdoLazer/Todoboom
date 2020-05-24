@@ -4,30 +4,70 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-import com.google.gson.Gson;
+import androidx.annotation.Nullable;
+
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.EventListener;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-
-import static android.content.Context.MODE_PRIVATE;
 
 public class TodoListInfoManager {
     public static String TODO_LIST_SP = "com.my.todoboom.preferences";
     public static String KEY_ITEMS_COUNT = "my.todoboom.items_count";
 
+    private static TodoListInfoManager manager;
+    private TodoboomApp app;
+    private FirebaseFirestore db;
     private List<TodoItem> todos = new ArrayList<>();
-    private Gson gson;
     private SharedPreferences sp;
 
-    public TodoListInfoManager(Context context) {
-        sp = context.getSharedPreferences(TODO_LIST_SP, MODE_PRIVATE);
-        int itemCount = sp.getInt(KEY_ITEMS_COUNT, 0);
-        Log.i(null, "Items in list: " + itemCount);
-        gson = new Gson();
-        for (int id = 0; id < itemCount; id++) {
-            String storedJson = sp.getString(Integer.toString(id), null);
-            todos.add(gson.fromJson(storedJson, TodoItem.class));
+    private TodoListInfoManager(Context context) {
+        app = (TodoboomApp) context;
+        db = FirebaseFirestore.getInstance();
+        db.collection("tasks")
+                .addSnapshotListener(new EventListener<QuerySnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.d("tag", e.getMessage() != null ? e.getMessage() : "exception");
+                            return;
+                        }
+                        TodoListInfoManager.this.todos.clear();
+                        if (queryDocumentSnapshots == null) {
+                            Log.d("tag", "query returned null");
+                            return;
+                        }
+                        for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                            TodoListInfoManager.this.todos.add(document.toObject(TodoItem.class));
+                        }
+                        TodoListInfoManager.this.todos.sort(new Comparator<TodoItem>() {
+                            @Override
+                            public int compare(TodoItem o1, TodoItem o2) {
+                                return o1.getCreationTimestamp().compareTo(o2.getCreationTimestamp());
+                            }
+                        });
+                        app.adapter.notifyDataSetChanged();
+                    }
+                });
+    }
+
+    public static void init(Context context) {
+        if (manager == null) {
+            manager = new TodoListInfoManager(context);
         }
+    }
+
+    public static TodoListInfoManager getManager() throws Exception {
+        if (manager == null) {
+            throw new Exception("Must init TodoListInfoManager!");
+        }
+        return manager;
     }
 
     public TodoItem get(int id) {
@@ -36,37 +76,33 @@ public class TodoListInfoManager {
 
     public void add(TodoItem todo) {
         todos.add(todo);
-        sp.edit()
-                .putString(Integer.toString(size() - 1), gson.toJson(todo))
-                .putInt(KEY_ITEMS_COUNT, size())
-                .apply();
+        DocumentReference document = db.collection("tasks").document();
+        todo.setId(document.getId());
+        document.set(todo);
     }
 
     public void clear() {
-        todos.clear();
-        int itemCount = sp.getInt(KEY_ITEMS_COUNT, 0);
-        for (int id = 0; id < itemCount; id++) {
-            sp.edit()
-                    .remove(Integer.toString(id))
-                    .apply();
+        for (TodoItem item : todos) {
+            db.collection("tasks").document(item.getId()).delete();
         }
-        sp.edit().putInt(KEY_ITEMS_COUNT, 0).apply();
     }
 
     public void delete(int id) {
-        for (int i = id + 1; i < size(); i++) {
-            sp.edit().putString(Integer.toString(i - 1), gson.toJson(todos.get(i))).apply();
-        }
+        TodoItem item = todos.get(id);
         todos.remove(id);
-        sp.edit().putInt(KEY_ITEMS_COUNT, size()).apply();
+        db.collection("tasks").document(item.getId()).delete();
     }
 
-    public void setIsDone(int id) {
+    public void setIsDone(int id, boolean done) {
         TodoItem todo = todos.get(id);
-        todo.setDone(true);
-        sp.edit()
-                .putString(Integer.toString(id), gson.toJson(todo))
-                .apply();
+        todo.setDone(done);
+        db.collection("tasks").document(todo.getId()).set(todo);
+    }
+
+    public void editItemContent(int id, String newContent) {
+        TodoItem todo = todos.get(id);
+        todo.setContent(newContent);
+        db.collection("tasks").document(todo.getId()).set(todo);
     }
 
     public int size() {
